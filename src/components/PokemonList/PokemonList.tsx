@@ -107,7 +107,6 @@ const PokemonList: React.FC = () => {
         setTotalCount(data.count);
         setFavoritesCount(getFavorites().length);
 
-        // بلافاصله filteredList رو set کن - بدون debounce
         setFilteredList(transformedList);
 
         // Small delay for smooth transition
@@ -149,7 +148,6 @@ const PokemonList: React.FC = () => {
           if (cachedFavorites && cachedIds === JSON.stringify(favoriteIds)) {
             const parsed = JSON.parse(cachedFavorites);
             setFavoritePokemon(parsed);
-            // بلافاصله filteredList رو set کن
             setFilteredList(parsed);
             setShowContent(true);
             setLoading(false);
@@ -194,7 +192,6 @@ const PokemonList: React.FC = () => {
           const validFavorites = favorites.filter((p): p is PokemonBasicInfo => p !== null);
 
           setFavoritePokemon(validFavorites);
-          // بلافاصله filteredList رو set کن
           setFilteredList(validFavorites);
 
           sessionStorage.setItem('cachedFavorites', JSON.stringify(validFavorites));
@@ -216,13 +213,10 @@ const PokemonList: React.FC = () => {
     loadFavorites();
   }, [viewMode, reloadTrigger]);
 
-  // Search across ALL Pokemon - فقط برای search
   useEffect(() => {
-    // اگر داره لود میشه، skip کن
     if (loading) return;
 
     const searchPokemon = async () => {
-      // اگر search query خالیه، skip کن
       if (searchQuery.trim() === '') {
         if (viewMode === 'all') {
           setFilteredList(pokemonList);
@@ -359,7 +353,6 @@ const PokemonList: React.FC = () => {
     sessionStorage.removeItem('cachedFavorites');
     sessionStorage.removeItem('cachedFavoriteIds');
 
-    // اگر در favorites هستیم، فقط reload کن
     if (viewMode === 'favorites') {
       setReloadTrigger(prev => prev + 1);
     }
@@ -368,18 +361,12 @@ const PokemonList: React.FC = () => {
   const totalPages = calculateTotalPages(totalCount);
 
   const handleBrowseAll = () => {
-    // پاک کردن cache و stateهای مربوط به favorites
     sessionStorage.removeItem('scrollPosition');
     sessionStorage.removeItem('cachedFavorites');
     sessionStorage.removeItem('cachedFavoriteIds');
-    
-    // بازنشانی stateها
+  
     setSearchQuery('');
-    
-    // تغییر view mode به all با پاک کردن پارامتر view
-    setSearchParams({}, { replace: true });
-    
-    // اسکرول به بالا
+    setSearchParams({}, { replace: true });    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
