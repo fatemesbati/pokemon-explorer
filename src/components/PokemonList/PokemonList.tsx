@@ -409,6 +409,17 @@ const PokemonList: React.FC = () => {
     }
   };
 
+  const exitFavorites = () => {
+    // reset favorites-related state
+    setFavoritesFullyLoaded(false);
+    setFilteredList([]);
+    setFavoritePokemon([]);
+    setLoading(true);
+
+    setSearchParams({}, { replace: true });
+  };
+
+
 
   if (error) {
     return (
@@ -549,7 +560,7 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => changeViewMode('all')}
+              onClick={exitFavorites}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
