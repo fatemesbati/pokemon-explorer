@@ -135,4 +135,4 @@ Interested in clean architecture, UX, and scalable front-end systems
 
 ## 📄 License
 
-MIT
+This project was created for demonstration and evaluation purposes.
