@@ -25,7 +25,6 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import { useSearchParams } from 'react-router-dom';
 import PokemonCard from './PokemonCard';
 import { useNavigate } from 'react-router-dom';
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import {
   fetchPokemonList,
   fetchPokemonDetail,
@@ -49,6 +48,7 @@ const SkeletonCard: React.FC = () => (
 
 const PokemonList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [pokemonList, setPokemonList] = useState<PokemonBasicInfo[]>([]);
   const [allPokemonNames, setAllPokemonNames] = useState<PokemonBasicInfo[]>([]);
   const [favoritePokemon, setFavoritePokemon] = useState<PokemonBasicInfo[]>([]);
@@ -67,29 +67,8 @@ const PokemonList: React.FC = () => {
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   // Get view mode from URL or default to 'all'
-  const urlViewMode = searchParams.get('view');
-  // const [viewMode, setViewMode] = useState<'all' | 'favorites'>(
-  //   urlViewMode === 'favorites' ? 'favorites' : 'all'
-  // );
   const viewMode: 'all' | 'favorites' =
     searchParams.get('view') === 'favorites' ? 'favorites' : 'all';
-
-  // Sync viewMode with URL and reset state
-  // useEffect(() => {
-  //   const urlViewMode = searchParams.get('view');
-
-  //   if (urlViewMode === 'favorites') {
-  //     if (viewMode !== 'favorites') {
-  //       setViewMode('favorites');
-  //     }
-  //     // بلافاصله loading رو true کن
-  //     setLoading(true);
-  //     setFavoritesFullyLoaded(false);
-  //   } else if (!urlViewMode && viewMode !== 'all') {
-  //     setViewMode('all');
-  //     setFavoritesFullyLoaded(false);
-  //   }
-  // }, [searchParams, viewMode]);
 
   // Load ALL Pokemon names once for search functionality
   useEffect(() => {
@@ -245,6 +224,11 @@ const PokemonList: React.FC = () => {
     const searchPokemon = async () => {
       // اگر search query خالیه، skip کن
       if (searchQuery.trim() === '') {
+        if (viewMode === 'all') {
+          setFilteredList(pokemonList);
+        } else {
+          setFilteredList(favoritePokemon);
+        }
         return;
       }
 
@@ -280,7 +264,7 @@ const PokemonList: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, loading, favoritePokemon, viewMode, allPokemonNames]);
+  }, [searchQuery, loading, favoritePokemon, viewMode, allPokemonNames, pokemonList]);
 
   // Restore scroll position
   useEffect(() => {
@@ -352,24 +336,18 @@ const PokemonList: React.FC = () => {
     setSearchQuery('');
   };
 
-  // const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: 'all' | 'favorites' | null) => {
-  //   if (newMode !== null) {
-  //     setViewMode(newMode);
-  //     setSearchQuery('');
-  //     if (newMode === 'favorites') {
-  //       setSearchParams({ view: 'favorites' });
-  //     } else {
-  //       setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
-  //     }
-  //   }
-  // };
-
   const handleViewModeChange = (
     _event: React.MouseEvent<HTMLElement>,
     newMode: 'all' | 'favorites' | null
   ) => {
     if (newMode) {
-      changeViewMode(newMode);
+      setSearchQuery('');
+
+      if (newMode === 'favorites') {
+        setSearchParams({ view: 'favorites' }, { replace: true });
+      } else {
+        setSearchParams({}, { replace: true });
+      }
     }
   };
 
@@ -389,39 +367,21 @@ const PokemonList: React.FC = () => {
 
   const totalPages = calculateTotalPages(totalCount);
 
-  // const changeViewMode = (mode: 'all' | 'favorites') => {
-  //   setViewMode(mode);
-  //   setSearchQuery('');
-
-  //   if (mode === 'favorites') {
-  //     setSearchParams({ view: 'favorites' });
-  //   } else {
-  //     setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
-  //   }
-  // };
-
-  const changeViewMode = (mode: 'all' | 'favorites') => {
+  const handleBrowseAll = () => {
+    // پاک کردن cache و stateهای مربوط به favorites
+    sessionStorage.removeItem('scrollPosition');
+    sessionStorage.removeItem('cachedFavorites');
+    sessionStorage.removeItem('cachedFavoriteIds');
+    
+    // بازنشانی stateها
     setSearchQuery('');
-
-    if (mode === 'favorites') {
-      setSearchParams({ view: 'favorites' }, { replace: true });
-    } else {
-      setSearchParams({}, { replace: true });
-    }
-  };
-
-  const exitFavorites = () => {
-    // reset favorites-related state
-    setFavoritesFullyLoaded(false);
-    setFilteredList([]);
-    setFavoritePokemon([]);
-    setLoading(true);
-
+    
+    // تغییر view mode به all با پاک کردن پارامتر view
     setSearchParams({}, { replace: true });
+    
+    // اسکرول به بالا
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const navigate = useNavigate();
-
 
   if (error) {
     return (
@@ -562,10 +522,7 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => {
-                sessionStorage.removeItem('scrollPosition');
-                navigate('/', { replace: true });
-              }}
+              onClick={handleBrowseAll}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
