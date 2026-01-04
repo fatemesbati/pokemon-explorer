@@ -390,7 +390,7 @@ const PokemonList: React.FC = () => {
     setSearchParams({});
 
     // 4. اگه Vercel هنوز مشکل داره، این رو uncomment کن:
-    // window.location.href = '/';
+    window.location.href = '/';
   };
 
   const totalPages = calculateTotalPages(totalCount);
