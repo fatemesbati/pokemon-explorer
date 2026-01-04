@@ -22,7 +22,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import GridViewIcon from '@mui/icons-material/GridView';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import PokemonCard from './PokemonCard';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import {
@@ -48,7 +48,6 @@ const SkeletonCard: React.FC = () => (
 
 const PokemonList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [pokemonList, setPokemonList] = useState<PokemonBasicInfo[]>([]);
   const [allPokemonNames, setAllPokemonNames] = useState<PokemonBasicInfo[]>([]);
   const [favoritePokemon, setFavoritePokemon] = useState<PokemonBasicInfo[]>([]);
@@ -376,11 +375,6 @@ const PokemonList: React.FC = () => {
     }
   };
 
-  const handleBrowseAll = () => {
-    // Force reload به صفحه اصلی
-    window.location.href = window.location.origin;
-  };
-
   const totalPages = calculateTotalPages(totalCount);
 
   if (error) {
@@ -522,7 +516,7 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={handleBrowseAll}
+              onClick={() => handleViewModeChange({} as React.MouseEvent<HTMLElement>, 'all')}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
