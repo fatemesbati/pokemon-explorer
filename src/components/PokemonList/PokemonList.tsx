@@ -22,7 +22,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import GridViewIcon from '@mui/icons-material/GridView';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import PokemonCard from './PokemonCard';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import {
@@ -48,6 +48,7 @@ const SkeletonCard: React.FC = () => (
 
 const PokemonList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [pokemonList, setPokemonList] = useState<PokemonBasicInfo[]>([]);
   const [allPokemonNames, setAllPokemonNames] = useState<PokemonBasicInfo[]>([]);
   const [favoritePokemon, setFavoritePokemon] = useState<PokemonBasicInfo[]>([]);
@@ -60,6 +61,7 @@ const PokemonList: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [favoritesFullyLoaded, setFavoritesFullyLoaded] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   // Get page from URL or default to 1
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
@@ -78,7 +80,7 @@ const PokemonList: React.FC = () => {
       if (viewMode !== 'favorites') {
         setViewMode('favorites');
       }
-
+      // بلافاصله loading رو true کن
       setLoading(true);
       setFavoritesFullyLoaded(false);
     } else if (!urlViewMode && viewMode !== 'all') {
@@ -124,6 +126,7 @@ const PokemonList: React.FC = () => {
         setTotalCount(data.count);
         setFavoritesCount(getFavorites().length);
         
+        // بلافاصله filteredList رو set کن - بدون debounce
         setFilteredList(transformedList);
         
         // Small delay for smooth transition
@@ -165,6 +168,7 @@ const PokemonList: React.FC = () => {
           if (cachedFavorites && cachedIds === JSON.stringify(favoriteIds)) {
             const parsed = JSON.parse(cachedFavorites);
             setFavoritePokemon(parsed);
+            // بلافاصله filteredList رو set کن
             setFilteredList(parsed);
             setShowContent(true);
             setLoading(false);
@@ -209,6 +213,7 @@ const PokemonList: React.FC = () => {
           const validFavorites = favorites.filter((p): p is PokemonBasicInfo => p !== null);
           
           setFavoritePokemon(validFavorites);
+          // بلافاصله filteredList رو set کن
           setFilteredList(validFavorites);
           
           sessionStorage.setItem('cachedFavorites', JSON.stringify(validFavorites));
@@ -228,13 +233,15 @@ const PokemonList: React.FC = () => {
     };
 
     loadFavorites();
-  }, [viewMode]);
+  }, [viewMode, reloadTrigger]);
 
-  // Search across ALL Pokemon
+  // Search across ALL Pokemon - فقط برای search
   useEffect(() => {
+    // اگر داره لود میشه، skip کن
     if (loading) return;
     
     const searchPokemon = async () => {
+      // اگر search query خالیه، skip کن
       if (searchQuery.trim() === '') {
         return;
       }
@@ -363,10 +370,14 @@ const PokemonList: React.FC = () => {
     sessionStorage.removeItem('cachedFavorites');
     sessionStorage.removeItem('cachedFavoriteIds');
     
+    // اگر در favorites هستیم، فقط reload کن
     if (viewMode === 'favorites') {
-      setViewMode('all');
-      setTimeout(() => setViewMode('favorites'), 0);
+      setReloadTrigger(prev => prev + 1);
     }
+  };
+
+  const handleBrowseAll = () => {
+    navigate('/');
   };
 
   const totalPages = calculateTotalPages(totalCount);
@@ -510,10 +521,7 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => {
-                setViewMode('all');
-                setSearchParams({});
-              }}
+              onClick={handleBrowseAll}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
