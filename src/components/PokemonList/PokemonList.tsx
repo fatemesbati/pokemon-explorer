@@ -24,6 +24,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import GridViewIcon from '@mui/icons-material/GridView';
 import { useSearchParams } from 'react-router-dom';
 import PokemonCard from './PokemonCard';
+import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import {
   fetchPokemonList,
@@ -419,6 +420,7 @@ const PokemonList: React.FC = () => {
     setSearchParams({}, { replace: true });
   };
 
+  const navigate = useNavigate();
 
 
   if (error) {
@@ -560,7 +562,7 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={exitFavorites}
+              onClick={() => navigate('/', { replace: true })}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
