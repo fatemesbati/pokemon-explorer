@@ -349,15 +349,24 @@ const PokemonList: React.FC = () => {
     setSearchQuery('');
   };
 
-  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: 'all' | 'favorites' | null) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-      setSearchQuery('');
-      if (newMode === 'favorites') {
-        setSearchParams({ view: 'favorites' });
-      } else {
-        setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
-      }
+  // const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: 'all' | 'favorites' | null) => {
+  //   if (newMode !== null) {
+  //     setViewMode(newMode);
+  //     setSearchQuery('');
+  //     if (newMode === 'favorites') {
+  //       setSearchParams({ view: 'favorites' });
+  //     } else {
+  //       setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
+  //     }
+  //   }
+  // };
+
+  const handleViewModeChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newMode: 'all' | 'favorites' | null
+  ) => {
+    if (newMode) {
+      changeViewMode(newMode);
     }
   };
 
@@ -376,6 +385,18 @@ const PokemonList: React.FC = () => {
   };
 
   const totalPages = calculateTotalPages(totalCount);
+
+  const changeViewMode = (mode: 'all' | 'favorites') => {
+    setViewMode(mode);
+    setSearchQuery('');
+
+    if (mode === 'favorites') {
+      setSearchParams({ view: 'favorites' });
+    } else {
+      setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
+    }
+  };
+
 
   if (error) {
     return (
@@ -516,7 +537,7 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => handleViewModeChange({} as React.MouseEvent<HTMLElement>, 'all')}
+              onClick={() => changeViewMode('all')}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
