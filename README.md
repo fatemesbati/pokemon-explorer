@@ -13,37 +13,34 @@ https://pokemon-explorer-xi-ten.vercel.app/
 
 This project was implemented as part of the **Front-End Intern Challenge** provided by Arkus-AI.
 
-The original task required building a small Pokémon explorer application using **React** and **TypeScript**, including:
+The task required building a small Pokémon explorer application using **React** and **TypeScript**, including:
 - A Pokémon list page
 - A Pokémon detail page
 - API integration using PokéAPI
 - Basic navigation and responsive styling
 
-This solution fulfills all required criteria and includes several additional improvements to demonstrate front-end best practices.
+This solution fulfills all required criteria and includes additional enhancements to demonstrate front-end best practices.
 
 ---
 
-## ✅ Implemented Requirements
+## ✅ Implemented Features
 
 ### Pokémon List Page
 - Paginated list of Pokémon
-- Clickable Pokémon items leading to detail page
-- Responsive layout
+- Clickable items leading to detail page
+- Responsive layout for desktop, tablet, and mobile
 
 ### Pokémon Detail Page
-- Pokémon name
-- List of abilities
-- Pokémon image (official artwork)
+- Pokémon name and abilities
+- Official artwork display
 - Back navigation to list page
 
 ### API
-- Pokémon data fetched from **PokéAPI**
+- Data fetched from **PokéAPI**
 
 ---
 
-## 🌟 Additional Features & Enhancements
-
-In addition to the required features, the following enhancements were implemented:
+## 🌟 Additional Enhancements
 
 - **Global search** across all Pokémon
 - **Favorites system** with persistence via `localStorage`
@@ -51,10 +48,10 @@ In addition to the required features, the following enhancements were implemente
 - **Base stats visualization**
 - **Scroll position memory**
 - **Context-aware navigation** (list vs favorites)
-- **Loading states and smooth animations**
-- **Error boundaries for graceful error handling**
+- **Smooth animations and loading states**
+- **Error boundaries** for graceful error handling
 
-These additions were made to demonstrate:
+These additions showcase:
 - Strong React component design
 - Type-safe API integration
 - UX-focused state management
@@ -97,7 +94,7 @@ npm install
 npm start
 ````
 
-The application will be available at:
+Access the app at:
 
 ```
 http://localhost:3000
@@ -105,22 +102,12 @@ http://localhost:3000
 
 ---
 
-## 🧪 Testing
-
-* Unit and integration tests implemented using:
-
-  * Jest
-  * React Testing Library
-* Focused on component behavior and core application logic
-
----
-
 ## 🎯 Design Decisions
 
-* **Material UI** was selected for fast, accessible, and consistent UI development
-* **TypeScript** is used throughout to ensure type safety
-* Favorites are stored locally to avoid unnecessary backend complexity
-* API calls are abstracted into a dedicated service layer
+* **Material UI**: Fast, accessible, consistent UI development
+* **TypeScript**: End-to-end type safety
+* **Favorites system**: Stored in `localStorage` to avoid backend complexity
+* **Service layer**: API calls abstracted for maintainability
 
 ---
 
@@ -135,4 +122,4 @@ Interested in clean architecture, UX, and scalable front-end systems
 
 ## 📄 License
 
-This project was created for demonstration and evaluation purposes.
+This project is created for demonstration and evaluation purposes.
