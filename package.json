@@ -1,5 +1,4 @@
 {
-  "homepage": "https://fatemesbati.github.io/pokemon-explorer",
   "name": "pokemon-explorer",
   "version": "1.0.0",
   "description": "A responsive Pokemon explorer app built with React and TypeScript",
@@ -27,8 +26,9 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "test:coverage": "react-scripts test --coverage --watchAll=false"
   },
   "eslintConfig": {
     "extends": [
@@ -54,8 +54,5 @@
       "!src/index.tsx",
       "!src/reportWebVitals.ts"
     ]
-  },
-  "devDependencies": {
-    "gh-pages": "^6.3.0"
   }
 }

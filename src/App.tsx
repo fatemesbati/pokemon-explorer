@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import PokemonList from './components/PokemonList/PokemonList';
 import PokemonDetail from './components/PokemonDetail/PokemonDetail';
@@ -65,13 +65,13 @@ const App: React.FC = () => {
             bgcolor: 'background.default',
           }}
         >
-          <Router>
+          <BrowserRouter>
             <Routes>
               <Route path="/" element={<PokemonList />} />
               <Route path="/pokemon/:id" element={<PokemonDetail />} />
               <Route path="*" element={<PokemonList />} />
             </Routes>
-          </Router>
+          </BrowserRouter>
         </Box>
       </ErrorBoundary>
     </ThemeProvider>
