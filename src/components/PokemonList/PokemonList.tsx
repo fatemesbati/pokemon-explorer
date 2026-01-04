@@ -67,26 +67,28 @@ const PokemonList: React.FC = () => {
 
   // Get view mode from URL or default to 'all'
   const urlViewMode = searchParams.get('view');
-  const [viewMode, setViewMode] = useState<'all' | 'favorites'>(
-    urlViewMode === 'favorites' ? 'favorites' : 'all'
-  );
+  // const [viewMode, setViewMode] = useState<'all' | 'favorites'>(
+  //   urlViewMode === 'favorites' ? 'favorites' : 'all'
+  // );
+  const viewMode: 'all' | 'favorites' =
+    searchParams.get('view') === 'favorites' ? 'favorites' : 'all';
 
   // Sync viewMode with URL and reset state
-  useEffect(() => {
-    const urlViewMode = searchParams.get('view');
+  // useEffect(() => {
+  //   const urlViewMode = searchParams.get('view');
 
-    if (urlViewMode === 'favorites') {
-      if (viewMode !== 'favorites') {
-        setViewMode('favorites');
-      }
-      // بلافاصله loading رو true کن
-      setLoading(true);
-      setFavoritesFullyLoaded(false);
-    } else if (!urlViewMode && viewMode !== 'all') {
-      setViewMode('all');
-      setFavoritesFullyLoaded(false);
-    }
-  }, [searchParams, viewMode]);
+  //   if (urlViewMode === 'favorites') {
+  //     if (viewMode !== 'favorites') {
+  //       setViewMode('favorites');
+  //     }
+  //     // بلافاصله loading رو true کن
+  //     setLoading(true);
+  //     setFavoritesFullyLoaded(false);
+  //   } else if (!urlViewMode && viewMode !== 'all') {
+  //     setViewMode('all');
+  //     setFavoritesFullyLoaded(false);
+  //   }
+  // }, [searchParams, viewMode]);
 
   // Load ALL Pokemon names once for search functionality
   useEffect(() => {
@@ -386,14 +388,24 @@ const PokemonList: React.FC = () => {
 
   const totalPages = calculateTotalPages(totalCount);
 
+  // const changeViewMode = (mode: 'all' | 'favorites') => {
+  //   setViewMode(mode);
+  //   setSearchQuery('');
+
+  //   if (mode === 'favorites') {
+  //     setSearchParams({ view: 'favorites' });
+  //   } else {
+  //     setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
+  //   }
+  // };
+
   const changeViewMode = (mode: 'all' | 'favorites') => {
-    setViewMode(mode);
     setSearchQuery('');
 
     if (mode === 'favorites') {
-      setSearchParams({ view: 'favorites' });
+      setSearchParams({ view: 'favorites' }, { replace: true });
     } else {
-      setSearchParams(currentPage > 1 ? { page: currentPage.toString() } : {});
+      setSearchParams({}, { replace: true });
     }
   };
 
