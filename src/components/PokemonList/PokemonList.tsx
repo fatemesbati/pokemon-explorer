@@ -24,7 +24,6 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import GridViewIcon from '@mui/icons-material/GridView';
 import { useSearchParams } from 'react-router-dom';
 import PokemonCard from './PokemonCard';
-import { useNavigate } from 'react-router-dom';
 import {
   fetchPokemonList,
   fetchPokemonDetail,
@@ -48,7 +47,6 @@ const SkeletonCard: React.FC = () => (
 
 const PokemonList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [pokemonList, setPokemonList] = useState<PokemonBasicInfo[]>([]);
   const [allPokemonNames, setAllPokemonNames] = useState<PokemonBasicInfo[]>([]);
   const [favoritePokemon, setFavoritePokemon] = useState<PokemonBasicInfo[]>([]);
@@ -62,6 +60,7 @@ const PokemonList: React.FC = () => {
   const [showContent, setShowContent] = useState(false);
   const [favoritesFullyLoaded, setFavoritesFullyLoaded] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [isSwitchingToAll, setIsSwitchingToAll] = useState(false);
 
   // Get page from URL or default to 1
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
@@ -210,6 +209,10 @@ const PokemonList: React.FC = () => {
           setLoading(false);
           setFavoritesFullyLoaded(true);
         }
+      } else {
+        // اگر از favorites خارج شدیم، stateهای favorites رو reset کنیم
+        setFavoritePokemon([]);
+        setFavoritesFullyLoaded(false);
       }
     };
 
@@ -317,6 +320,17 @@ const PokemonList: React.FC = () => {
     }
   }, [loading, pokemonList, favoritePokemon, filteredList]);
 
+  // Handle smooth transition when switching from favorites to all
+  useEffect(() => {
+    if (isSwitchingToAll && viewMode === 'all') {
+      const timer = setTimeout(() => {
+        setIsSwitchingToAll(false);
+      }, 500); // Match the Fade animation duration
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSwitchingToAll, viewMode]);
+
   const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
     setSearchParams({ page: page.toString() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -368,19 +382,38 @@ const PokemonList: React.FC = () => {
   const totalPages = calculateTotalPages(totalCount);
 
   const handleBrowseAll = () => {
-    // پاک کردن cache و stateهای مربوط به favorites
-    sessionStorage.removeItem('scrollPosition');
+    // Set flag for smooth transition
+    setIsSwitchingToAll(true);
+    
+    // Clear search query
+    setSearchQuery('');
+    
+    // Reset favorites-related states immediately
+    setFavoritePokemon([]);
+    setFilteredList([]);
+    setFavoritesFullyLoaded(false);
+    
+    // Clear cache
     sessionStorage.removeItem('cachedFavorites');
     sessionStorage.removeItem('cachedFavoriteIds');
     
-    // بازنشانی stateها
-    setSearchQuery('');
-    
-    // تغییر view mode به all با پاک کردن پارامتر view
+    // Switch to all view by removing view parameter
     setSearchParams({}, { replace: true });
     
-    // اسکرول به بالا
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Smooth scroll to top
+    window.scrollTo({ 
+      top: 0, 
+      behavior: 'smooth' 
+    });
+  };
+
+  // تابع کمکی برای نمایش محتوای اصلی
+  const shouldShowMainContent = () => {
+    if (viewMode === 'all') {
+      return !loading && filteredList.length > 0 && !searchLoading;
+    } else {
+      return !loading && favoritesFullyLoaded && filteredList.length > 0 && !searchLoading;
+    }
   };
 
   if (error) {
@@ -401,9 +434,13 @@ const PokemonList: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ 
+      py: 4,
+      opacity: isSwitchingToAll ? 0.7 : 1,
+      transition: 'opacity 0.3s ease'
+    }}>
       {/* Header */}
-      <Fade in timeout={500}>
+      <Fade in={!isSwitchingToAll} timeout={500}>
         <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography
             variant="h3"
@@ -424,7 +461,7 @@ const PokemonList: React.FC = () => {
       </Fade>
 
       {/* View Mode Toggle */}
-      <Fade in timeout={600}>
+      <Fade in={!isSwitchingToAll} timeout={600}>
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
           <ToggleButtonGroup
             value={viewMode}
@@ -449,7 +486,7 @@ const PokemonList: React.FC = () => {
       </Fade>
 
       {/* Search Box */}
-      <Fade in timeout={700}>
+      <Fade in={!isSwitchingToAll} timeout={700}>
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
           <TextField
             value={searchQuery}
@@ -488,17 +525,19 @@ const PokemonList: React.FC = () => {
 
       {/* Loading indicator for search */}
       {searchLoading && (
-        <Box sx={{ textAlign: 'center', py: 2 }}>
-          <CircularProgress size={40} sx={{ mb: 1 }} />
-          <Typography variant="body2" color="text.secondary">
-            Searching...
-          </Typography>
-        </Box>
+        <Fade in timeout={300}>
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            <CircularProgress size={40} sx={{ mb: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              Searching...
+            </Typography>
+          </Box>
+        </Fade>
       )}
 
       {/* Skeleton Cards while loading */}
       {loading && (
-        <Fade in timeout={300}>
+        <Fade in={!isSwitchingToAll} timeout={300}>
           <Grid container spacing={3}>
             {[...Array(20)].map((_, index) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={`skeleton-${index}`}>
@@ -511,7 +550,7 @@ const PokemonList: React.FC = () => {
 
       {/* No Favorites Message */}
       {!loading && favoritesFullyLoaded && filteredList.length === 0 && viewMode === 'favorites' && !searchQuery && (
-        <Fade in timeout={500}>
+        <Fade in={!isSwitchingToAll} timeout={500}>
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <FavoriteIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -533,7 +572,7 @@ const PokemonList: React.FC = () => {
 
       {/* No Search Results */}
       {!loading && filteredList.length === 0 && searchQuery && !searchLoading && (
-        <Fade in timeout={500}>
+        <Fade in={!isSwitchingToAll} timeout={500}>
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No Pokémon found matching "{searchQuery}"
@@ -553,8 +592,8 @@ const PokemonList: React.FC = () => {
       )}
 
       {/* Pokemon Grid */}
-      {!loading && filteredList.length > 0 && !searchLoading && (
-        <Fade in={showContent} timeout={800}>
+      {shouldShowMainContent() && (
+        <Fade in={showContent && !isSwitchingToAll} timeout={800}>
           <Box>
             <Grid container spacing={3}>
               {filteredList.map((pokemon, index) => (
@@ -588,7 +627,7 @@ const PokemonList: React.FC = () => {
 
       {/* Pagination */}
       {!searchQuery && viewMode === 'all' && totalPages > 1 && (
-        <Fade in timeout={900}>
+        <Fade in={!isSwitchingToAll} timeout={900}>
           <Box
             sx={{
               display: 'flex',
@@ -614,7 +653,7 @@ const PokemonList: React.FC = () => {
 
       {/* Page Info */}
       {!searchQuery && viewMode === 'all' && (
-        <Fade in timeout={1000}>
+        <Fade in={!isSwitchingToAll} timeout={1000}>
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Page {currentPage} of {totalPages}
