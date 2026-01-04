@@ -377,20 +377,10 @@ const PokemonList: React.FC = () => {
   };
 
   const handleBrowseAll = () => {
-    // 1. Reset state ها
     setViewMode('all');
     setSearchQuery('');
     setFavoritesFullyLoaded(false);
-
-    // 2. پاک کردن cache
-    sessionStorage.removeItem('cachedFavorites');
-    sessionStorage.removeItem('cachedFavoriteIds');
-
-    // 3. پاک کردن URL params
-    setSearchParams({});
-
-    // 4. اگه Vercel هنوز مشکل داره، این رو uncomment کن:
-    window.location.href = '/';
+    setSearchParams({});  // پاک کردن همه params
   };
 
   const totalPages = calculateTotalPages(totalCount);
