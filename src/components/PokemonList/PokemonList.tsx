@@ -65,7 +65,7 @@ const PokemonList: React.FC = () => {
 
   // Get page from URL or default to 1
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
-  
+
   // Get view mode from URL or default to 'all'
   const urlViewMode = searchParams.get('view');
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>(
@@ -75,7 +75,7 @@ const PokemonList: React.FC = () => {
   // Sync viewMode with URL and reset state
   useEffect(() => {
     const urlViewMode = searchParams.get('view');
-    
+
     if (urlViewMode === 'favorites') {
       if (viewMode !== 'favorites') {
         setViewMode('favorites');
@@ -95,12 +95,12 @@ const PokemonList: React.FC = () => {
       try {
         const response = await fetchPokemonList(1);
         const totalPokemon = response.count;
-        
+
         const allPokemonResponse = await fetch(
           `https://pokeapi.co/api/v2/pokemon?limit=${totalPokemon}`
         );
         const allData = await allPokemonResponse.json();
-        
+
         const allNames = transformPokemonList(allData.results);
         setAllPokemonNames(allNames);
       } catch (err) {
@@ -125,10 +125,10 @@ const PokemonList: React.FC = () => {
         setPokemonList(transformedList);
         setTotalCount(data.count);
         setFavoritesCount(getFavorites().length);
-        
+
         // بلافاصله filteredList رو set کن - بدون debounce
         setFilteredList(transformedList);
-        
+
         // Small delay for smooth transition
         setTimeout(() => {
           setShowContent(true);
@@ -163,7 +163,7 @@ const PokemonList: React.FC = () => {
           // 1. Check if we have cached favorites
           const cachedFavorites = sessionStorage.getItem('cachedFavorites');
           const cachedIds = sessionStorage.getItem('cachedFavoriteIds');
-          
+
           // If cache exists and IDs match, use cached data immediately
           if (cachedFavorites && cachedIds === JSON.stringify(favoriteIds)) {
             const parsed = JSON.parse(cachedFavorites);
@@ -180,7 +180,7 @@ const PokemonList: React.FC = () => {
           setLoading(true);
           setShowContent(false);
           setError(null);
-          
+
           if (favoriteIds.length === 0) {
             setFavoritePokemon([]);
             setFilteredList([]);
@@ -211,14 +211,14 @@ const PokemonList: React.FC = () => {
 
           const favorites = await Promise.all(favoritePromises);
           const validFavorites = favorites.filter((p): p is PokemonBasicInfo => p !== null);
-          
+
           setFavoritePokemon(validFavorites);
           // بلافاصله filteredList رو set کن
           setFilteredList(validFavorites);
-          
+
           sessionStorage.setItem('cachedFavorites', JSON.stringify(validFavorites));
           sessionStorage.setItem('cachedFavoriteIds', JSON.stringify(favoriteIds));
-          
+
           setTimeout(() => {
             setShowContent(true);
             setLoading(false);
@@ -239,7 +239,7 @@ const PokemonList: React.FC = () => {
   useEffect(() => {
     // اگر داره لود میشه، skip کن
     if (loading) return;
-    
+
     const searchPokemon = async () => {
       // اگر search query خالیه، skip کن
       if (searchQuery.trim() === '') {
@@ -250,19 +250,19 @@ const PokemonList: React.FC = () => {
 
       try {
         const normalizedQuery = searchQuery.toLowerCase().trim().replace(/\s+/g, '-');
-        
+
         if (viewMode === 'all') {
           const matchingPokemon = allPokemonNames.filter((pokemon) => {
             const pokemonName = pokemon.name.toLowerCase();
-            return pokemonName.includes(normalizedQuery) || 
-                   pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
+            return pokemonName.includes(normalizedQuery) ||
+              pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
           });
           setFilteredList(matchingPokemon);
         } else {
           const filtered = favoritePokemon.filter((pokemon) => {
             const pokemonName = pokemon.name.toLowerCase();
-            return pokemonName.includes(normalizedQuery) || 
-                   pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
+            return pokemonName.includes(normalizedQuery) ||
+              pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
           });
           setFilteredList(filtered);
         }
@@ -286,7 +286,7 @@ const PokemonList: React.FC = () => {
       const savedScrollPosition = sessionStorage.getItem('scrollPosition');
       if (savedScrollPosition) {
         const targetPosition = parseInt(savedScrollPosition, 10);
-        
+
         const waitForImages = () => {
           const images = document.querySelectorAll('img');
           const imagePromises = Array.from(images).map((img) => {
@@ -310,9 +310,9 @@ const PokemonList: React.FC = () => {
               if (startTime === null) startTime = currentTime;
               const timeElapsed = currentTime - startTime;
               const progress = Math.min(timeElapsed / duration, 1);
-              
+
               const ease = 1 - Math.pow(1 - progress, 3);
-              
+
               window.scrollTo(0, startPosition + distance * ease);
 
               if (progress < 1) {
@@ -365,11 +365,11 @@ const PokemonList: React.FC = () => {
   const handleFavoriteToggle = () => {
     const newCount = getFavorites().length;
     setFavoritesCount(newCount);
-    
+
     // Clear cache because favorites changed
     sessionStorage.removeItem('cachedFavorites');
     sessionStorage.removeItem('cachedFavoriteIds');
-    
+
     // اگر در favorites هستیم، فقط reload کن
     if (viewMode === 'favorites') {
       setReloadTrigger(prev => prev + 1);
@@ -377,7 +377,16 @@ const PokemonList: React.FC = () => {
   };
 
   const handleBrowseAll = () => {
-    navigate('/');
+    // پاک کردن همه state ها
+    setViewMode('all');
+    setSearchQuery('');
+    setFavoritesFullyLoaded(false);
+
+    // پاک کردن URL params و navigate
+    navigate('/', { replace: true });
+
+    // اگه نیاز بود، force reload
+    window.location.href = '/';
   };
 
   const totalPages = calculateTotalPages(totalCount);
@@ -558,8 +567,8 @@ const PokemonList: React.FC = () => {
             <Grid container spacing={3}>
               {filteredList.map((pokemon, index) => (
                 <Grid item xs={12} sm={6} md={4} lg={3} key={pokemon.id}>
-                  <PokemonCard 
-                    pokemon={pokemon} 
+                  <PokemonCard
+                    pokemon={pokemon}
                     index={index}
                     onFavoriteToggle={handleFavoriteToggle}
                   />
@@ -574,10 +583,10 @@ const PokemonList: React.FC = () => {
                   {viewMode === 'favorites' && searchQuery
                     ? `Found ${filteredList.length} favorite Pokémon matching "${searchQuery}"`
                     : viewMode === 'favorites'
-                    ? `Showing ${filteredList.length} favorite Pokémon`
-                    : searchQuery
-                    ? `Found ${filteredList.length} Pokémon matching "${searchQuery}" across all pages`
-                    : ''}
+                      ? `Showing ${filteredList.length} favorite Pokémon`
+                      : searchQuery
+                        ? `Found ${filteredList.length} Pokémon matching "${searchQuery}" across all pages`
+                        : ''}
                 </Typography>
               </Box>
             )}
