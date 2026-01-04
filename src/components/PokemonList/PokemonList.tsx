@@ -562,7 +562,10 @@ const PokemonList: React.FC = () => {
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => navigate('/', { replace: true })}
+              onClick={() => {
+                sessionStorage.removeItem('scrollPosition');
+                navigate('/', { replace: true });
+              }}
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
