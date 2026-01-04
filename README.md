@@ -136,5 +136,3 @@ Interested in clean architecture, UX, and scalable front-end systems
 ## 📄 License
 
 MIT
-
-```
