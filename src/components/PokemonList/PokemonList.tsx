@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Grid,
@@ -22,7 +22,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import GridViewIcon from '@mui/icons-material/GridView';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import PokemonCard from './PokemonCard';
 import {
   fetchPokemonList,
@@ -47,6 +47,7 @@ const SkeletonCard: React.FC = () => (
 
 const PokemonList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [pokemonList, setPokemonList] = useState<PokemonBasicInfo[]>([]);
   const [allPokemonNames, setAllPokemonNames] = useState<PokemonBasicInfo[]>([]);
   const [favoritePokemon, setFavoritePokemon] = useState<PokemonBasicInfo[]>([]);
@@ -58,9 +59,7 @@ const PokemonList: React.FC = () => {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showContent, setShowContent] = useState(false);
-  const [favoritesFullyLoaded, setFavoritesFullyLoaded] = useState(false);
-  const [reloadTrigger, setReloadTrigger] = useState(0);
-  const [isSwitchingToAll, setIsSwitchingToAll] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Get page from URL or default to 1
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
@@ -106,13 +105,16 @@ const PokemonList: React.FC = () => {
         setTotalCount(data.count);
         setFavoritesCount(getFavorites().length);
 
-        // بلافاصله filteredList رو set کن - بدون debounce
-        setFilteredList(transformedList);
+        // بلافاصله filteredList رو set کن
+        if (searchQuery.trim() === '') {
+          setFilteredList(transformedList);
+        }
 
         // Small delay for smooth transition
         setTimeout(() => {
           setShowContent(true);
           setLoading(false);
+          setIsInitialLoad(false);
         }, 200);
       } catch (err) {
         setError(
@@ -121,55 +123,34 @@ const PokemonList: React.FC = () => {
             : 'An unexpected error occurred. Please try again.'
         );
         setLoading(false);
+        setIsInitialLoad(false);
       }
     };
 
-    if (viewMode === 'all' && !searchQuery) {
+    if (viewMode === 'all') {
       loadPokemon();
-    } else if (viewMode === 'all' && searchQuery) {
-      setLoading(false);
-      setShowContent(true);
     }
   }, [currentPage, viewMode, searchQuery]);
 
-  // Load favorite Pokemon with caching
+  // Load favorite Pokemon
   useEffect(() => {
     const loadFavorites = async () => {
       if (viewMode === 'favorites') {
         try {
-          const favoriteIds = getFavorites();
-          setFavoritesCount(favoriteIds.length);
-
-          // 1. Check if we have cached favorites
-          const cachedFavorites = sessionStorage.getItem('cachedFavorites');
-          const cachedIds = sessionStorage.getItem('cachedFavoriteIds');
-
-          // If cache exists and IDs match, use cached data immediately
-          if (cachedFavorites && cachedIds === JSON.stringify(favoriteIds)) {
-            const parsed = JSON.parse(cachedFavorites);
-            setFavoritePokemon(parsed);
-            // بلافاصله filteredList رو set کن
-            setFilteredList(parsed);
-            setShowContent(true);
-            setLoading(false);
-            setFavoritesFullyLoaded(true);
-            return;
-          }
-
-          // 2. No cache or IDs changed, show loading
           setLoading(true);
           setShowContent(false);
           setError(null);
 
+          const favoriteIds = getFavorites();
+          setFavoritesCount(favoriteIds.length);
+
           if (favoriteIds.length === 0) {
             setFavoritePokemon([]);
             setFilteredList([]);
-            sessionStorage.removeItem('cachedFavorites');
-            sessionStorage.removeItem('cachedFavoriteIds');
             setTimeout(() => {
               setShowContent(true);
               setLoading(false);
-              setFavoritesFullyLoaded(true);
+              setIsInitialLoad(false);
             }, 200);
             return;
           }
@@ -193,40 +174,36 @@ const PokemonList: React.FC = () => {
           const validFavorites = favorites.filter((p): p is PokemonBasicInfo => p !== null);
 
           setFavoritePokemon(validFavorites);
-          // بلافاصله filteredList رو set کن
-          setFilteredList(validFavorites);
-
-          sessionStorage.setItem('cachedFavorites', JSON.stringify(validFavorites));
-          sessionStorage.setItem('cachedFavoriteIds', JSON.stringify(favoriteIds));
+          if (searchQuery.trim() === '') {
+            setFilteredList(validFavorites);
+          }
 
           setTimeout(() => {
             setShowContent(true);
             setLoading(false);
-            setFavoritesFullyLoaded(true);
+            setIsInitialLoad(false);
           }, 200);
         } catch (err) {
           setError('Failed to load favorite Pokémon. Please try again.');
           setLoading(false);
-          setFavoritesFullyLoaded(true);
+          setIsInitialLoad(false);
         }
       } else {
-        // اگر از favorites خارج شدیم، stateهای favorites رو reset کنیم
+        // Reset favorite state when not in favorites view
         setFavoritePokemon([]);
-        setFavoritesFullyLoaded(false);
       }
     };
 
     loadFavorites();
-  }, [viewMode, reloadTrigger]);
+  }, [viewMode, searchQuery]);
 
-  // Search across ALL Pokemon - فقط برای search
+  // Handle search
   useEffect(() => {
-    // اگر داره لود میشه، skip کن
     if (loading) return;
 
-    const searchPokemon = async () => {
-      // اگر search query خالیه، skip کن
+    const performSearch = () => {
       if (searchQuery.trim() === '') {
+        // اگر سرچ خالی بود، لیست اصلی رو نشون بده
         if (viewMode === 'all') {
           setFilteredList(pokemonList);
         } else {
@@ -237,185 +214,156 @@ const PokemonList: React.FC = () => {
 
       setSearchLoading(true);
 
-      try {
-        const normalizedQuery = searchQuery.toLowerCase().trim().replace(/\s+/g, '-');
+      const normalizedQuery = searchQuery.toLowerCase().trim().replace(/\s+/g, '-');
 
-        if (viewMode === 'all') {
-          const matchingPokemon = allPokemonNames.filter((pokemon) => {
-            const pokemonName = pokemon.name.toLowerCase();
-            return pokemonName.includes(normalizedQuery) ||
-              pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
-          });
-          setFilteredList(matchingPokemon);
-        } else {
-          const filtered = favoritePokemon.filter((pokemon) => {
-            const pokemonName = pokemon.name.toLowerCase();
-            return pokemonName.includes(normalizedQuery) ||
-              pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
-          });
-          setFilteredList(filtered);
-        }
-      } catch (err) {
-        console.error('Search error:', err);
-      } finally {
-        setSearchLoading(false);
+      if (viewMode === 'all') {
+        const matchingPokemon = allPokemonNames.filter((pokemon) => {
+          const pokemonName = pokemon.name.toLowerCase();
+          return pokemonName.includes(normalizedQuery) ||
+            pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
+        });
+        setFilteredList(matchingPokemon);
+      } else {
+        const filtered = favoritePokemon.filter((pokemon) => {
+          const pokemonName = pokemon.name.toLowerCase();
+          return pokemonName.includes(normalizedQuery) ||
+            pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
+        });
+        setFilteredList(filtered);
       }
+
+      setSearchLoading(false);
     };
 
-    const timeoutId = setTimeout(() => {
-      searchPokemon();
-    }, 300);
-
+    const timeoutId = setTimeout(performSearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, loading, favoritePokemon, viewMode, allPokemonNames, pokemonList]);
+  }, [searchQuery, viewMode, pokemonList, favoritePokemon, allPokemonNames, loading]);
 
-  // Restore scroll position
-  useEffect(() => {
-    if (!loading && (pokemonList.length > 0 || favoritePokemon.length > 0 || filteredList.length > 0)) {
-      const savedScrollPosition = sessionStorage.getItem('scrollPosition');
-      if (savedScrollPosition) {
-        const targetPosition = parseInt(savedScrollPosition, 10);
-
-        const waitForImages = () => {
-          const images = document.querySelectorAll('img');
-          const imagePromises = Array.from(images).map((img) => {
-            if (img.complete) {
-              return Promise.resolve();
-            }
-            return new Promise((resolve) => {
-              img.addEventListener('load', resolve);
-              img.addEventListener('error', resolve);
-              setTimeout(resolve, 2000);
-            });
-          });
-
-          Promise.all(imagePromises).then(() => {
-            const startPosition = window.scrollY;
-            const distance = targetPosition - startPosition;
-            const duration = 300;
-            let startTime: number | null = null;
-
-            const animation = (currentTime: number) => {
-              if (startTime === null) startTime = currentTime;
-              const timeElapsed = currentTime - startTime;
-              const progress = Math.min(timeElapsed / duration, 1);
-
-              const ease = 1 - Math.pow(1 - progress, 3);
-
-              window.scrollTo(0, startPosition + distance * ease);
-
-              if (progress < 1) {
-                requestAnimationFrame(animation);
-              } else {
-                sessionStorage.removeItem('scrollPosition');
-              }
-            };
-
-            requestAnimationFrame(animation);
-          });
-        };
-
-        setTimeout(waitForImages, 100);
-      }
-    }
-  }, [loading, pokemonList, favoritePokemon, filteredList]);
-
-  // Handle smooth transition when switching from favorites to all
-  useEffect(() => {
-    if (isSwitchingToAll && viewMode === 'all') {
-      const timer = setTimeout(() => {
-        setIsSwitchingToAll(false);
-      }, 500); // Match the Fade animation duration
-
-      return () => clearTimeout(timer);
-    }
-  }, [isSwitchingToAll, viewMode]);
-
+  // Handle page change
   const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
     setSearchParams({ page: page.toString() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Handle retry on error
   const handleRetry = () => {
-    setError(null);
-    setLoading(true);
     window.location.reload();
   };
 
+  // Handle search input change
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
 
+  // Handle clear search
   const handleClearSearch = () => {
     setSearchQuery('');
   };
 
+  // Handle view mode change
   const handleViewModeChange = (
     _event: React.MouseEvent<HTMLElement>,
     newMode: 'all' | 'favorites' | null
   ) => {
     if (newMode) {
       setSearchQuery('');
-
+      
       if (newMode === 'favorites') {
         setSearchParams({ view: 'favorites' }, { replace: true });
       } else {
         setSearchParams({}, { replace: true });
       }
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handleFavoriteToggle = () => {
+  // Handle favorite toggle
+  const handleFavoriteToggle = useCallback(() => {
     const newCount = getFavorites().length;
     setFavoritesCount(newCount);
-
-    // Clear cache because favorites changed
-    sessionStorage.removeItem('cachedFavorites');
-    sessionStorage.removeItem('cachedFavoriteIds');
-
-    // اگر در favorites هستیم، فقط reload کن
-    if (viewMode === 'favorites') {
-      setReloadTrigger(prev => prev + 1);
-    }
-  };
-
-  const totalPages = calculateTotalPages(totalCount);
-
-  const handleBrowseAll = () => {
-    // Set flag for smooth transition
-    setIsSwitchingToAll(true);
     
-    // Clear search query
+    // اگر در favorites view هستیم، state رو آپدیت کن
+    if (viewMode === 'favorites') {
+      const favoriteIds = getFavorites();
+      
+      if (favoriteIds.length === 0) {
+        setFavoritePokemon([]);
+        setFilteredList([]);
+        return;
+      }
+      
+      // فقط favoriteهای جدید رو fetch کن
+      const fetchUpdatedFavorites = async () => {
+        const favoritePromises = favoriteIds.map(async (id) => {
+          try {
+            const pokemon = await fetchPokemonDetail(id);
+            return {
+              id: pokemon.id,
+              name: pokemon.name,
+              url: `https://pokeapi.co/api/v2/pokemon/${pokemon.id}/`,
+              imageUrl: getPokemonSpriteUrl(pokemon.id),
+            };
+          } catch (error) {
+            console.error(`Failed to fetch Pokemon ${id}:`, error);
+            return null;
+          }
+        });
+
+        const favorites = await Promise.all(favoritePromises);
+        const validFavorites = favorites.filter((p): p is PokemonBasicInfo => p !== null);
+        
+        setFavoritePokemon(validFavorites);
+        
+        // اگر سرچی وجود داره، فیلتر کن
+        if (searchQuery.trim() !== '') {
+          const normalizedQuery = searchQuery.toLowerCase().trim().replace(/\s+/g, '-');
+          const filtered = validFavorites.filter((pokemon) => {
+            const pokemonName = pokemon.name.toLowerCase();
+            return pokemonName.includes(normalizedQuery) ||
+              pokemonName.replace(/-/g, ' ').includes(searchQuery.toLowerCase().trim());
+          });
+          setFilteredList(filtered);
+        } else {
+          setFilteredList(validFavorites);
+        }
+      };
+      
+      fetchUpdatedFavorites();
+    }
+  }, [viewMode, searchQuery]);
+
+  // Handle browse all button
+  const handleBrowseAll = useCallback(() => {
+    // پاک کردن search query
     setSearchQuery('');
     
-    // Reset favorites-related states immediately
-    setFavoritePokemon([]);
-    setFilteredList([]);
-    setFavoritesFullyLoaded(false);
-    
-    // Clear cache
-    sessionStorage.removeItem('cachedFavorites');
-    sessionStorage.removeItem('cachedFavoriteIds');
-    
-    // Switch to all view by removing view parameter
+    // تغییر به view mode همه
     setSearchParams({}, { replace: true });
     
-    // Smooth scroll to top
-    window.scrollTo({ 
-      top: 0, 
-      behavior: 'smooth' 
-    });
-  };
+    // اسکرول به بالا
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [setSearchParams]);
 
-  // تابع کمکی برای نمایش محتوای اصلی
-  const shouldShowMainContent = () => {
-    if (viewMode === 'all') {
-      return !loading && filteredList.length > 0 && !searchLoading;
-    } else {
-      return !loading && favoritesFullyLoaded && filteredList.length > 0 && !searchLoading;
-    }
-  };
+  // Calculate total pages
+  const totalPages = calculateTotalPages(totalCount);
 
+  // Render loading skeletons
+  if (loading && isInitialLoad) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Grid container spacing={3}>
+          {[...Array(20)].map((_, index) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={`skeleton-${index}`}>
+              <SkeletonCard />
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    );
+  }
+
+  // Render error
   if (error) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
@@ -434,13 +382,9 @@ const PokemonList: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ 
-      py: 4,
-      opacity: isSwitchingToAll ? 0.7 : 1,
-      transition: 'opacity 0.3s ease'
-    }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
-      <Fade in={!isSwitchingToAll} timeout={500}>
+      <Fade in={showContent} timeout={500}>
         <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography
             variant="h3"
@@ -461,7 +405,7 @@ const PokemonList: React.FC = () => {
       </Fade>
 
       {/* View Mode Toggle */}
-      <Fade in={!isSwitchingToAll} timeout={600}>
+      <Fade in={showContent} timeout={600}>
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
           <ToggleButtonGroup
             value={viewMode}
@@ -486,12 +430,16 @@ const PokemonList: React.FC = () => {
       </Fade>
 
       {/* Search Box */}
-      <Fade in={!isSwitchingToAll} timeout={700}>
+      <Fade in={showContent} timeout={700}>
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
           <TextField
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Search Pokémon by name across all pages..."
+            placeholder={
+              viewMode === 'all' 
+                ? "Search Pokémon by name across all pages..." 
+                : "Search in your favorites..."
+            }
             variant="outlined"
             sx={{
               width: '100%',
@@ -523,45 +471,31 @@ const PokemonList: React.FC = () => {
         </Box>
       </Fade>
 
-      {/* Loading indicator for search */}
+      {/* Search loading indicator */}
       {searchLoading && (
-        <Fade in timeout={300}>
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <CircularProgress size={40} sx={{ mb: 1 }} />
-            <Typography variant="body2" color="text.secondary">
-              Searching...
-            </Typography>
-          </Box>
-        </Fade>
-      )}
-
-      {/* Skeleton Cards while loading */}
-      {loading && (
-        <Fade in={!isSwitchingToAll} timeout={300}>
-          <Grid container spacing={3}>
-            {[...Array(20)].map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={`skeleton-${index}`}>
-                <SkeletonCard />
-              </Grid>
-            ))}
-          </Grid>
-        </Fade>
+        <Box sx={{ textAlign: 'center', py: 2 }}>
+          <CircularProgress size={24} />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Searching...
+          </Typography>
+        </Box>
       )}
 
       {/* No Favorites Message */}
-      {!loading && favoritesFullyLoaded && filteredList.length === 0 && viewMode === 'favorites' && !searchQuery && (
-        <Fade in={!isSwitchingToAll} timeout={500}>
+      {!loading && viewMode === 'favorites' && filteredList.length === 0 && !searchQuery && (
+        <Fade in={showContent} timeout={500}>
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <FavoriteIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Typography variant="h5" color="text.secondary" gutterBottom>
               No favorites yet
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
               Click the heart icon on any Pokémon card to add it to your favorites
             </Typography>
             <Button
-              variant="outlined"
+              variant="contained"
               onClick={handleBrowseAll}
+              size="large"
               sx={{ mt: 2 }}
             >
               Browse All Pokémon
@@ -572,17 +506,18 @@ const PokemonList: React.FC = () => {
 
       {/* No Search Results */}
       {!loading && filteredList.length === 0 && searchQuery && !searchLoading && (
-        <Fade in={!isSwitchingToAll} timeout={500}>
+        <Fade in={showContent} timeout={500}>
           <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No Pokémon found matching "{searchQuery}"
+            <Typography variant="h5" color="text.secondary" gutterBottom>
+              No Pokémon found
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Try searching with a different name
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              No results for "{searchQuery}"
             </Typography>
             <Button
               variant="outlined"
               onClick={handleClearSearch}
+              size="large"
               sx={{ mt: 2 }}
             >
               Clear Search
@@ -592,8 +527,8 @@ const PokemonList: React.FC = () => {
       )}
 
       {/* Pokemon Grid */}
-      {shouldShowMainContent() && (
-        <Fade in={showContent && !isSwitchingToAll} timeout={800}>
+      {!loading && filteredList.length > 0 && (
+        <Fade in={showContent} timeout={800}>
           <Box>
             <Grid container spacing={3}>
               {filteredList.map((pokemon, index) => (
@@ -607,35 +542,28 @@ const PokemonList: React.FC = () => {
               ))}
             </Grid>
 
-            {/* Results Info */}
-            {(searchQuery || viewMode === 'favorites') && (
-              <Box sx={{ textAlign: 'center', mt: 3 }}>
-                <Typography variant="body2" color="text.secondary">
-                  {viewMode === 'favorites' && searchQuery
-                    ? `Found ${filteredList.length} favorite Pokémon matching "${searchQuery}"`
-                    : viewMode === 'favorites'
-                      ? `Showing ${filteredList.length} favorite Pokémon`
-                      : searchQuery
-                        ? `Found ${filteredList.length} Pokémon matching "${searchQuery}" across all pages`
+            {/* Results Count */}
+            <Box sx={{ textAlign: 'center', mt: 4, mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {viewMode === 'favorites' && searchQuery
+                  ? `Found ${filteredList.length} favorite Pokémon matching "${searchQuery}"`
+                  : viewMode === 'favorites'
+                    ? `Showing ${filteredList.length} favorite Pokémon`
+                    : searchQuery
+                      ? `Found ${filteredList.length} Pokémon matching "${searchQuery}"`
+                      : viewMode === 'all'
+                        ? `Page ${currentPage} of ${totalPages} - ${filteredList.length} Pokémon`
                         : ''}
-                </Typography>
-              </Box>
-            )}
+              </Typography>
+            </Box>
           </Box>
         </Fade>
       )}
 
-      {/* Pagination */}
+      {/* Pagination - فقط برای حالت همه پوکمون‌ها و بدون سرچ */}
       {!searchQuery && viewMode === 'all' && totalPages > 1 && (
-        <Fade in={!isSwitchingToAll} timeout={900}>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              mt: 6,
-              mb: 2,
-            }}
-          >
+        <Fade in={showContent} timeout={900}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
             <Pagination
               count={totalPages}
               page={currentPage}
@@ -646,6 +574,7 @@ const PokemonList: React.FC = () => {
               showLastButton
               siblingCount={1}
               boundaryCount={1}
+              sx={{ '& .MuiPaginationItem-root': { fontSize: '1rem' } }}
             />
           </Box>
         </Fade>
@@ -653,10 +582,10 @@ const PokemonList: React.FC = () => {
 
       {/* Page Info */}
       {!searchQuery && viewMode === 'all' && (
-        <Fade in={!isSwitchingToAll} timeout={1000}>
+        <Fade in={showContent} timeout={1000}>
           <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Page {currentPage} of {totalPages}
+              Page {currentPage} of {totalPages} • Total {totalCount.toLocaleString()} Pokémon
             </Typography>
           </Box>
         </Fade>
