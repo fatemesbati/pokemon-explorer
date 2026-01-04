@@ -377,10 +377,8 @@ const PokemonList: React.FC = () => {
   };
 
   const handleBrowseAll = () => {
-    setViewMode('all');
-    setSearchQuery('');
-    setFavoritesFullyLoaded(false);
-    setSearchParams({});  // پاک کردن همه params
+    // Force reload به صفحه اصلی
+    window.location.href = window.location.origin;
   };
 
   const totalPages = calculateTotalPages(totalCount);
