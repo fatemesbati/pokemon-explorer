@@ -377,16 +377,17 @@ const PokemonList: React.FC = () => {
   };
 
   const handleBrowseAll = () => {
-    // پاک کردن همه state ها
     setViewMode('all');
     setSearchQuery('');
     setFavoritesFullyLoaded(false);
+    sessionStorage.removeItem('cachedFavorites');
+    sessionStorage.removeItem('cachedFavoriteIds');
+    setSearchParams({});
 
-    // پاک کردن URL params و navigate
-    navigate('/', { replace: true });
-
-    // اگه نیاز بود، force reload
-    window.location.href = '/';
+    // برای Vercel - force reload
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 100);
   };
 
   const totalPages = calculateTotalPages(totalCount);
