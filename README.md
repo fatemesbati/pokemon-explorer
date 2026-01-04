@@ -1,7 +1,3 @@
-حتماً 👍
-این هم **نسخه نهایی README به‌صورت Markdown (`README.md`)** که می‌تونی مستقیم کپی کنی و بذاری تو ریپو:
-
-```md
 # Pokémon Explorer App
 
 A React + TypeScript implementation of the **Pokémon Explorer App** challenge, built according to the requirements defined in the Arkus-AI front-end assignment.
