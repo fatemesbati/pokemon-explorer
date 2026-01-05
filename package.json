@@ -1,8 +1,11 @@
 {
   "name": "pokemon-explorer",
   "version": "1.0.0",
-  "description": "A responsive Pokemon explorer app built with React and TypeScript",
   "private": true,
+  "description": "A responsive Pokemon explorer app built with React and TypeScript",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
