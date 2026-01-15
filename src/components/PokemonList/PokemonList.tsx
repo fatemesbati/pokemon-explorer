@@ -26,11 +26,9 @@ import { useSearchParams } from "react-router-dom";
 import PokemonCard from "./PokemonCard";
 import {
   fetchPokemonList,
-  fetchPokemonDetail,
   transformPokemonList,
   calculateTotalPages,
   getFavorites,
-  getPokemonSpriteUrl,
   fetchMultiplePokemon,
   searchPokemonByName,
 } from "../../services/api";
