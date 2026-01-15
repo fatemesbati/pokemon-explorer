@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Container,
   Paper,
@@ -12,36 +12,57 @@ import {
   Alert,
   Divider,
   IconButton,
-} from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
-import EvolutionChain from '../EvolutionChain/EvolutionChain';
-import { 
-  fetchPokemonDetail, 
-  formatPokemonName, 
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+import EvolutionChain from "../EvolutionChain/EvolutionChain";
+import {
+  fetchPokemonDetail,
+  formatPokemonName,
   formatStatName,
   getEvolutionChain,
   isFavorite,
   toggleFavorite,
-} from '../../services/api';
-import { Pokemon, TYPE_COLORS, EvolutionStage } from '../../types/pokemon';
+} from "../../services/api";
+import { Pokemon, TYPE_COLORS, EvolutionStage } from "../../types/pokemon";
 
+// Maximum possible base stat value for any Pokemon stat
+// WHY: Used to calculate percentage for progress bars
+// SOURCE: Pokemon game mechanics (255 is theoretical max)
+const MAX_STAT = 255;
 const PokemonDetail: React.FC = () => {
+  // Extract Pokemon ID from URL (e.g., /pokemon/25 → id = "25")
   const { id } = useParams<{ id: string }>();
+
+  // Navigation hook for programmatic navigation
   const navigate = useNavigate();
+
+  // Pokemon data object (null until loaded)
   const [pokemon, setPokemon] = useState<Pokemon | null>(null);
+
+  // Evolution chain stages array
   const [evolutionStages, setEvolutionStages] = useState<EvolutionStage[]>([]);
+
+  // Loading state for initial data fetch
   const [loading, setLoading] = useState(true);
+
+  // Error message if API call fails
   const [error, setError] = useState<string | null>(null);
+
+  // Image loading state (for smooth fade-in)
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Favorite status (synced with localStorage)
   const [favorite, setFavorite] = useState(false);
 
+  // Runs when component mounts or when ID changes
   useEffect(() => {
     const loadPokemonDetail = async () => {
+      // Validate ID exists
       if (!id) {
-        setError('Invalid Pokemon ID');
+        setError("Invalid Pokemon ID");
         setLoading(false);
         return;
       }
@@ -49,20 +70,22 @@ const PokemonDetail: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch main Pokemon data
         const data = await fetchPokemonDetail(id);
         setPokemon(data);
-        
-        // Check if favorited
+
+        // Check favorite status from localStorage
         setFavorite(isFavorite(data.id));
-        
-        // Load evolution chain
+
+        // Fetch evolution chain (async)
         const evolutions = await getEvolutionChain(data.id);
         setEvolutionStages(evolutions);
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : 'Failed to load Pokemon details. Please try again.'
+            : "Failed to load Pokemon details. Please try again."
         );
       } finally {
         setLoading(false);
@@ -72,22 +95,24 @@ const PokemonDetail: React.FC = () => {
     loadPokemonDetail();
   }, [id]);
 
+  // Handle back button click
   const handleBack = () => {
-  // Check if we have a saved list page URL
-  const listPageUrl = sessionStorage.getItem('listPageUrl');
-  if (listPageUrl) {
-    navigate(listPageUrl);
-  } else {
-    navigate('/');
+    const listPageUrl = sessionStorage.getItem("listPageUrl");
+    if (listPageUrl) {
+      navigate(listPageUrl);
+    } else {
+      navigate("/");
     }
   };
 
+  // Handle retry button click after error
   const handleRetry = () => {
     setError(null);
     setLoading(true);
     window.location.reload();
   };
 
+  // Handle favorite toggle button click
   const handleFavoriteToggle = () => {
     if (pokemon) {
       const newStatus = toggleFavorite(pokemon.id);
@@ -138,16 +163,22 @@ const PokemonDetail: React.FC = () => {
     );
   }
 
+  // Get high-quality official artwork, fallback to sprite
   const mainImage =
-    pokemon.sprites.other?.['official-artwork']?.front_default ||
+    pokemon.sprites.other?.["official-artwork"]?.front_default ||
     pokemon.sprites.front_default;
-
-  const maxStat = 255; // Maximum base stat value in Pokemon
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* Back Button and Favorite */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      {/* Header: Back Button and Favorite Toggle */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={handleBack}
@@ -158,72 +189,80 @@ const PokemonDetail: React.FC = () => {
         <IconButton
           onClick={handleFavoriteToggle}
           sx={{
-            bgcolor: 'background.paper',
+            bgcolor: "background.paper",
             boxShadow: 2,
-            '&:hover': {
-              bgcolor: 'background.paper',
+            "&:hover": {
+              bgcolor: "background.paper",
               boxShadow: 4,
             },
           }}
-          aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
         >
           {favorite ? (
-            <FavoriteIcon sx={{ color: 'error.main', fontSize: 30 }} />
+            <FavoriteIcon sx={{ color: "error.main", fontSize: 30 }} />
           ) : (
-            <FavoriteBorderIcon sx={{ color: 'text.secondary', fontSize: 30 }} />
+            <FavoriteBorderIcon
+              sx={{ color: "text.secondary", fontSize: 30 }}
+            />
           )}
         </IconButton>
       </Box>
 
-      <Paper 
-        elevation={3} 
-        sx={{ 
-          p: 4, 
+      {/* Main Content Card */}
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
           borderRadius: 2,
-          // Entrance animation
-          animation: 'fadeInScale 0.4s ease-out',
-          '@keyframes fadeInScale': {
-            '0%': {
+          // Smooth entrance animation
+          animation: "fadeInScale 0.4s ease-out",
+          "@keyframes fadeInScale": {
+            "0%": {
               opacity: 0,
-              transform: 'scale(0.95)',
+              transform: "scale(0.95)",
             },
-            '100%': {
+            "100%": {
               opacity: 1,
-              transform: 'scale(1)',
+              transform: "scale(1)",
             },
           },
         }}
       >
-        {/* Header Section */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
+        {/* ===== HEADER SECTION ===== */}
+        <Box sx={{ textAlign: "center", mb: 4 }}>
+          {/* Pokemon Number */}
           <Typography variant="h6" color="text.secondary" gutterBottom>
-            #{pokemon.id.toString().padStart(3, '0')}
+            #{pokemon.id.toString().padStart(3, "0")}
           </Typography>
+
+          {/* Pokemon Name */}
           <Typography
             variant="h3"
             component="h1"
             gutterBottom
             sx={{
               fontWeight: 700,
-              textTransform: 'capitalize',
-              color: 'primary.main',
+              textTransform: "capitalize",
+              color: "primary.main",
             }}
           >
             {formatPokemonName(pokemon.name)}
           </Typography>
 
-          {/* Types */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 3 }}>
+          {/* Type Badges */}
+          <Box
+            sx={{ display: "flex", justifyContent: "center", gap: 1, mb: 3 }}
+          >
             {pokemon.types.map((type) => (
               <Chip
                 key={type.type.name}
                 label={type.type.name}
                 sx={{
-                  bgcolor: TYPE_COLORS[type.type.name] || '#777',
-                  color: 'white',
+                  bgcolor: TYPE_COLORS[type.type.name] || "#777",
+                  color: "white",
                   fontWeight: 600,
-                  textTransform: 'capitalize',
-                  fontSize: '0.9rem',
+                  textTransform: "capitalize",
+                  fontSize: "0.9rem",
                   px: 1,
                 }}
               />
@@ -234,22 +273,23 @@ const PokemonDetail: React.FC = () => {
           {mainImage && (
             <Box
               sx={{
-                position: 'relative',
-                width: '100%',
+                position: "relative",
+                width: "100%",
                 maxWidth: 300,
-                margin: '0 auto',
+                margin: "0 auto",
                 mb: 3,
               }}
             >
+              {/* Loading Placeholder */}
               {!imageLoaded && (
                 <Box
                   sx={{
-                    width: '100%',
+                    width: "100%",
                     height: 300,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: 'grey.100',
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "grey.100",
                     borderRadius: 2,
                   }}
                 >
@@ -258,14 +298,16 @@ const PokemonDetail: React.FC = () => {
                   </Typography>
                 </Box>
               )}
+
+              {/* Actual Image */}
               <img
                 src={mainImage}
                 alt={formatPokemonName(pokemon.name)}
                 onLoad={() => setImageLoaded(true)}
                 style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: imageLoaded ? 'block' : 'none',
+                  width: "100%",
+                  height: "auto",
+                  display: imageLoaded ? "block" : "none",
                 }}
               />
             </Box>
@@ -274,18 +316,23 @@ const PokemonDetail: React.FC = () => {
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Evolution Chain */}
+        {/* ===== EVOLUTION CHAIN SECTION ===== */}
+        {/* Only show if Pokemon has evolutions */}
         {evolutionStages.length > 0 && (
           <>
-            <EvolutionChain stages={evolutionStages} currentPokemonId={pokemon.id} />
+            <EvolutionChain
+              stages={evolutionStages}
+              currentPokemonId={pokemon.id}
+            />
             <Divider sx={{ my: 3 }} />
           </>
         )}
 
-        {/* Physical Attributes */}
+        {/* ===== PHYSICAL ATTRIBUTES SECTION ===== */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
+          {/* Height */}
           <Grid item xs={6}>
-            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+            <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary">
                 Height
               </Typography>
@@ -294,8 +341,10 @@ const PokemonDetail: React.FC = () => {
               </Typography>
             </Paper>
           </Grid>
+
+          {/* Weight */}
           <Grid item xs={6}>
-            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+            <Paper variant="outlined" sx={{ p: 2, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary">
                 Weight
               </Typography>
@@ -306,48 +355,53 @@ const PokemonDetail: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Abilities Section */}
+        {/* ===== ABILITIES SECTION ===== */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Abilities
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
             {pokemon.abilities.map((ability) => (
               <Chip
                 key={ability.ability.name}
                 label={formatPokemonName(ability.ability.name)}
-                variant={ability.is_hidden ? 'outlined' : 'filled'}
-                color={ability.is_hidden ? 'secondary' : 'primary'}
+                variant={ability.is_hidden ? "outlined" : "filled"}
+                color={ability.is_hidden ? "secondary" : "primary"}
                 sx={{
-                  fontSize: '0.9rem',
+                  fontSize: "0.9rem",
                   fontWeight: 500,
                 }}
               />
             ))}
           </Box>
+
+          {/* Hidden Abilities Note */}
           {pokemon.abilities.some((a) => a.is_hidden) && (
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ display: 'block', mt: 1 }}
+              sx={{ display: "block", mt: 1 }}
             >
               * Outlined abilities are hidden abilities
             </Typography>
           )}
         </Box>
 
-        {/* Stats Section */}
+        {/* ===== BASE STATS SECTION ===== */}
         <Box>
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
             Base Stats
           </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          {/* Individual Stats with Progress Bars */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {pokemon.stats.map((stat) => (
               <Box key={stat.stat.name}>
+                {/* Stat Name and Value */}
                 <Box
                   sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
+                    display: "flex",
+                    justifyContent: "space-between",
                     mb: 0.5,
                   }}
                 >
@@ -358,21 +412,24 @@ const PokemonDetail: React.FC = () => {
                     {stat.base_stat}
                   </Typography>
                 </Box>
+
+                {/* Progress Bar */}
                 <LinearProgress
                   variant="determinate"
-                  value={(stat.base_stat / maxStat) * 100}
+                  value={(stat.base_stat / MAX_STAT) * 100}
                   sx={{
                     height: 8,
                     borderRadius: 1,
-                    bgcolor: 'grey.200',
-                    '& .MuiLinearProgress-bar': {
+                    bgcolor: "grey.200",
+                    "& .MuiLinearProgress-bar": {
                       borderRadius: 1,
+                      // Color based on stat value
                       bgcolor:
                         stat.base_stat >= 100
-                          ? 'success.main'
+                          ? "success.main" // Green for high stats
                           : stat.base_stat >= 60
-                          ? 'primary.main'
-                          : 'warning.main',
+                          ? "primary.main" // Blue for medium stats
+                          : "warning.main", // Orange for low stats
                     },
                   }}
                 />
@@ -380,16 +437,16 @@ const PokemonDetail: React.FC = () => {
             ))}
           </Box>
 
-          {/* Total Stats */}
+          {/* Total Stats Summary */}
           <Box
             sx={{
               mt: 3,
               p: 2,
-              bgcolor: 'primary.light',
+              bgcolor: "primary.light",
               borderRadius: 1,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
             <Typography variant="body1" sx={{ fontWeight: 600 }}>

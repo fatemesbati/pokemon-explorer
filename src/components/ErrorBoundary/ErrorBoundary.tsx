@@ -1,6 +1,6 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Box, Typography, Button, Container, Paper } from '@mui/material';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { Component, ErrorInfo, ReactNode } from "react";
+import { Box, Typography, Button, Container, Paper } from "@mui/material";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 interface Props {
   children: ReactNode;
@@ -22,12 +22,13 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    // Log to console for development
+    console.error("Uncaught error:", error, errorInfo);
   }
 
   private handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   public render() {
@@ -44,25 +45,25 @@ class ErrorBoundary extends Component<Props, State> {
           >
             <Paper
               elevation={3}
-              sx={{
-                p: 4,
-                textAlign: 'center',
-                borderRadius: 2,
-              }}
+              sx={{ p: 4, textAlign: "center", borderRadius: 2 }}
             >
+              {/* Error Icon */}
               <ErrorOutlineIcon
-                sx={{
-                  fontSize: 80,
-                  color: 'error.main',
-                  mb: 2,
-                }}
+                sx={{ fontSize: 80, color: "error.main", mb: 2 }}
               />
+
+              {/* Main Error Message */}
               <Typography variant="h4" gutterBottom>
                 Oops! Something went wrong
               </Typography>
+
+              {/* User-friendly explanation */}
               <Typography variant="body1" color="text.secondary" paragraph>
                 We're sorry for the inconvenience. An unexpected error occurred.
               </Typography>
+
+              {/* Technical Error Details */}
+              {/* Only show in development - remove in production for security */}
               {this.state.error && (
                 <Typography
                   variant="body2"
@@ -70,15 +71,17 @@ class ErrorBoundary extends Component<Props, State> {
                   sx={{
                     mt: 2,
                     p: 2,
-                    bgcolor: 'grey.100',
+                    bgcolor: "grey.100",
                     borderRadius: 1,
-                    fontFamily: 'monospace',
-                    fontSize: '0.85rem',
+                    fontFamily: "monospace",
+                    fontSize: "0.85rem",
                   }}
                 >
                   {this.state.error.message}
                 </Typography>
               )}
+
+              {/* Recovery Button */}
               <Button
                 variant="contained"
                 color="primary"
@@ -93,6 +96,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
+    // No error - render children normally
     return this.props.children;
   }
 }
